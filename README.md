@@ -17,6 +17,168 @@ Controle de sistemas dinâmicos
 Como funciona:
 Cada partícula representa uma possível solução e se move em direção à melhor posição conhecida com base em sua experiência e na experiência do grupo.
 
+
+```py
+import random
+import math
+
+class Particle:
+    def __init__(self, dim, minx, maxx):
+        self.position = [random.uniform(minx, maxx) for _ in range(dim)]
+        self.velocity = [0.0 for _ in range(dim)]
+        self.best_pos = self.position.copy()
+        self.best_score = float('inf')
+
+class PSO:
+    def __init__(self, dim, num_particles, iterations):
+        self.dim = dim
+        self.num_particles = num_particles
+        self.iterations = iterations
+        self.swarm = [Particle(dim, -5, 5) for _ in range(num_particles)]
+        self.global_best = [0.0]*dim
+        self.global_best_score = float('inf')
+
+    def fitness(self, position):
+        return sum(x**2 for x in position)
+
+    def optimize(self):
+        for _ in range(self.iterations):
+            for particle in self.swarm:
+                current_score = self.fitness(particle.position)
+                
+                if current_score < particle.best_score:
+                    particle.best_score = current_score
+                    particle.best_pos = particle.position.copy()
+                
+                if current_score < self.global_best_score:
+                    self.global_best_score = current_score
+                    self.global_best = particle.position.copy()
+
+            for particle in self.swarm:
+                for i in range(self.dim):
+                    w = 0.5  # Inércia
+                    c1 = 1   # Cognitivo
+                    c2 = 2   # Social
+
+                    new_velocity = (w * particle.velocity[i] +
+                                    c1 * random.random() * (particle.best_pos[i] - particle.position[i]) +
+                                    c2 * random.random() * (self.global_best[i] - particle.position[i]))
+                    
+                    particle.velocity[i] = new_velocity
+                    particle.position[i] += particle.velocity[i]
+
+        return self.global_best
+
+# Execução
+pso = PSO(dim=2, num_particles=30, iterations=100)
+result = pso.optimize()
+print("Melhor solução encontrada:", result)
+print("Valor na função objetivo:", sum(x**2 for x in result))
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+type Particle struct {
+	position  []float64
+	velocity  []float64
+	bestPos   []float64
+	bestScore float64
+}
+
+type PSO struct {
+	dim           int
+	numParticles  int
+	iterations    int
+	swarm         []Particle
+	globalBest    []float64
+	globalBestVal float64
+}
+
+func NewPSO(dim, numParticles, iterations int) *PSO {
+	rand.Seed(time.Now().UnixNano())
+	pso := &PSO{
+		dim:           dim,
+		numParticles:  numParticles,
+		iterations:    iterations,
+		globalBestVal: math.Inf(1),
+	}
+	
+	pso.swarm = make([]Particle, numParticles)
+	for i := range pso.swarm {
+		particle := Particle{
+			position:  make([]float64, dim),
+			velocity:  make([]float64, dim),
+			bestPos:   make([]float64, dim),
+			bestScore: math.Inf(1),
+		}
+		for j := range particle.position {
+			particle.position[j] = rand.Float64()*10 - 5
+		}
+		pso.swarm[i] = particle
+	}
+	return pso
+}
+
+func (pso *PSO) fitness(position []float64) float64 {
+	sum := 0.0
+	for _, x := range position {
+		sum += x * x
+	}
+	return sum
+}
+
+func (pso *PSO) Optimize() []float64 {
+	for iter := 0; iter < pso.iterations; iter++ {
+		for i := range pso.swarm {
+			currentScore := pso.fitness(pso.swarm[i].position)
+			
+			if currentScore < pso.swarm[i].bestScore {
+				pso.swarm[i].bestScore = currentScore
+				copy(pso.swarm[i].bestPos, pso.swarm[i].position)
+			}
+			
+			if currentScore < pso.globalBestVal {
+				pso.globalBestVal = currentScore
+				pso.globalBest = make([]float64, pso.dim)
+				copy(pso.globalBest, pso.swarm[i].position)
+			}
+		}
+
+		for i := range pso.swarm {
+			for j := range pso.swarm[i].position {
+				w := 0.5  // Inércia
+				c1 := 1.0 // Cognitivo
+				c2 := 2.0 // Social
+
+				newVelocity := w*pso.swarm[i].velocity[j] +
+					c1*rand.Float64()*(pso.swarm[i].bestPos[j]-pso.swarm[i].position[j]) +
+					c2*rand.Float64()*(pso.globalBest[j]-pso.swarm[i].position[j])
+
+				pso.swarm[i].velocity[j] = newVelocity
+				pso.swarm[i].position[j] += pso.swarm[i].velocity[j]
+			}
+		}
+	}
+	return pso.globalBest
+}
+
+func main() {
+	pso := NewPSO(2, 30, 100)
+	result := pso.Optimize()
+	fmt.Printf("Melhor solução encontrada: %v\n", result)
+	fmt.Printf("Valor na função objetivo: %f\n", pso.fitness(result))
+}
+```
 ## Ant Colony Optimization (ACO)
 
 O que é:
@@ -29,6 +191,209 @@ Planejamento logístico
 
 Como funciona:
 As formigas artificiais depositam feromônios nos caminhos percorridos, reforçando rotas mais curtas e eficientes ao longo do tempo.
+
+Exemplo em Python:
+
+```py
+import random
+import math
+
+class ACO_TSP:
+    def __init__(self, cities, num_ants=10, iterations=100, decay=0.5, alpha=1, beta=2):
+        self.cities = cities
+        self.num_ants = num_ants
+        self.iterations = iterations
+        self.decay = decay
+        self.alpha = alpha  # Importância do feromônio
+        self.beta = beta    # Importância da distância
+        self.pheromone = [[1.0 for _ in cities] for _ in cities]
+
+    def distance(self, city1, city2):
+        return math.hypot(city1[0]-city2[0], city1[1]-city2[1])
+
+    def run(self):
+        best_path = None
+        best_distance = float('inf')
+
+        for _ in range(self.iterations):
+            paths = []
+            for ant in range(self.num_ants):
+                visited = [False]*len(self.cities)
+                path = [random.randint(0, len(self.cities)-1)]
+                visited[path[0]] = True
+
+                while len(path) < len(self.cities):
+                    current = path[-1]
+                    probs = []
+                    total = 0.0
+
+                    for city in range(len(self.cities)):
+                        if not visited[city]:
+                            pheromone = self.pheromone[current][city] ** self.alpha
+                            heuristic = (1.0 / self.distance(self.cities[current], self.cities[city])) ** self.beta
+                            probs.append((city, pheromone * heuristic))
+                            total += pheromone * heuristic
+
+                    # Seleção probabilística
+                    r = random.uniform(0, total)
+                    upto = 0.0
+                    for city, prob in probs:
+                        upto += prob
+                        if upto >= r:
+                            path.append(city)
+                            visited[city] = True
+                            break
+
+                # Atualiza melhor caminho
+                total_dist = sum(self.distance(self.cities[path[i]], self.cities[path[i+1]]) for i in range(len(path)-1))
+                if total_dist < best_distance:
+                    best_distance = total_dist
+                    best_path = path
+
+            # Atualiza feromônios
+            for i in range(len(self.cities)):
+                for j in range(len(self.cities)):
+                    self.pheromone[i][j] *= self.decay
+
+            # Adiciona feromônio do melhor caminho
+            for i in range(len(best_path)-1):
+                a = best_path[i]
+                b = best_path[i+1]
+                self.pheromone[a][b] += 1.0 / best_distance
+
+        return best_path, best_distance
+
+# Uso:
+cities = [(0,0), (1,2), (3,1), (4,3)]
+aco = ACO_TSP(cities, num_ants=15, iterations=50)
+path, distance = aco.run()
+print("Melhor caminho:", path, "Distância:", distance)
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+type ACO struct {
+	cities     [][2]float64
+	numAnts    int
+	iterations int
+	decay      float64
+	alpha      float64
+	beta       float64
+	pheromone  [][]float64
+}
+
+func NewACO(cities [][2]float64, numAnts, iterations int, decay, alpha, beta float64) *ACO {
+	aco := &ACO{
+		cities:     cities,
+		numAnts:    numAnts,
+		iterations: iterations,
+		decay:      decay,
+		alpha:      alpha,
+		beta:       beta,
+	}
+	aco.pheromone = make([][]float64, len(cities))
+	for i := range aco.pheromone {
+		aco.pheromone[i] = make([]float64, len(cities))
+		for j := range aco.pheromone[i] {
+			aco.pheromone[i][j] = 1.0
+		}
+	}
+	return aco
+}
+
+func (aco *ACO) distance(city1, city2 [2]float64) float64 {
+	return math.Hypot(city1[0]-city2[0], city1[1]-city2[1])
+}
+
+func (aco *ACO) Run() ([]int, float64) {
+	rand.Seed(time.Now().UnixNano())
+	bestPath := make([]int, len(aco.cities))
+	bestDistance := math.Inf(1)
+
+	for iter := 0; iter < aco.iterations; iter++ {
+		for ant := 0; ant < aco.numAnts; ant++ {
+			visited := make([]bool, len(aco.cities))
+			path := []int{rand.Intn(len(aco.cities))}
+			visited[path[0]] = true
+
+			for len(path) < len(aco.cities) {
+				current := path[len(path)-1]
+				var probs []struct {
+					city int
+					prob float64
+				}
+				total := 0.0
+
+				for city := range aco.cities {
+					if !visited[city] {
+						pheromone := math.Pow(aco.pheromone[current][city], aco.alpha)
+						heuristic := math.Pow(1.0/aco.distance(aco.cities[current], aco.cities[city]), aco.beta)
+						prob := pheromone * heuristic
+						probs = append(probs, struct{ city int; prob float64 }{city, prob})
+						total += prob
+					}
+				}
+
+				// Seleção probabilística
+				r := rand.Float64() * total
+				upto := 0.0
+				for _, p := range probs {
+					upto += p.prob
+					if upto >= r {
+						path = append(path, p.city)
+						visited[p.city] = true
+						break
+					}
+				}
+			}
+
+			// Calcula distância
+			totalDist := 0.0
+			for i := 0; i < len(path)-1; i++ {
+				totalDist += aco.distance(aco.cities[path[i]], aco.cities[path[i+1]])
+			}
+
+			if totalDist < bestDistance {
+				bestDistance = totalDist
+				copy(bestPath, path)
+			}
+		}
+
+		// Atualiza feromônios
+		for i := range aco.pheromone {
+			for j := range aco.pheromone[i] {
+				aco.pheromone[i][j] *= aco.decay
+			}
+		}
+
+		// Adiciona feromônio do melhor caminho
+		for i := 0; i < len(bestPath)-1; i++ {
+			a := bestPath[i]
+			b := bestPath[i+1]
+			aco.pheromone[a][b] += 1.0 / bestDistance
+		}
+	}
+
+	return bestPath, bestDistance
+}
+
+func main() {
+	cities := [][2]float64{{0, 0}, {1, 2}, {3, 1}, {4, 3}}
+	aco := NewACO(cities, 15, 50, 0.5, 1, 2)
+	path, dist := aco.Run()
+	fmt.Printf("Melhor caminho: %v\nDistância: %.2f\n", path, dist)
+}
+```
 
 ## Artificial Bee Colony (ABC)
 
