@@ -853,6 +853,163 @@ Reconhecimento de padrões
 Como funciona:
 Cada vaga-lume ajusta sua luz de acordo com a qualidade da solução encontrada e segue os mais brilhantes.
 
+Exemplo em Python:
+
+```py
+import numpy as np
+import random
+
+class Glowworm:
+    def __init__(self, search_space):
+        self.position = random.uniform(search_space[0], search_space[1])  # Posição inicial
+        self.luciferin = 0.0  # Intensidade inicial de luz
+
+    def update_luciferin(self, function, decay=0.4, enhancement=0.6):
+        """Atualiza a intensidade da luz (luciferina) com base na função objetivo"""
+        self.luciferin = (1 - decay) * self.luciferin + enhancement * function(self.position)
+
+    def move_towards(self, other, step_size=0.1):
+        """Move-se na direção de outro vaga-lume mais brilhante"""
+        if self.luciferin < other.luciferin:
+            direction = np.sign(other.position - self.position)
+            self.position += direction * step_size
+
+class GlowwormSwarmOptimization:
+    def __init__(self, function, search_space, num_agents=20, iterations=100):
+        self.function = function
+        self.search_space = search_space
+        self.agents = [Glowworm(search_space) for _ in range(num_agents)]
+        self.iterations = iterations
+
+    def optimize(self):
+        """Executa o GSO"""
+        for _ in range(self.iterations):
+            # Atualizar luciferina
+            for agent in self.agents:
+                agent.update_luciferin(self.function)
+
+            # Movimento baseado em intensidade de luz
+            for agent in self.agents:
+                brighter_neighbors = [other for other in self.agents if other.luciferin > agent.luciferin]
+                if brighter_neighbors:
+                    best_neighbor = max(brighter_neighbors, key=lambda a: a.luciferin)
+                    agent.move_towards(best_neighbor)
+
+        # Melhor solução encontrada
+        best_agent = max(self.agents, key=lambda a: self.function(a.position))
+        return best_agent.position, self.function(best_agent.position)
+
+# Definição da função objetivo
+def objective_function(x):
+    return np.sin(x) + np.cos(2*x)
+
+# Execução do GSO
+gso = GlowwormSwarmOptimization(objective_function, search_space=(-10, 10))
+best_x, best_value = gso.optimize()
+print(f"Melhor solução encontrada: x = {best_x:.4f}, f(x) = {best_value:.4f}")
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+// Glowworm representa um agente no GSO
+type Glowworm struct {
+	position   float64
+	luciferin  float64
+}
+
+// UpdateLuciferin atualiza a intensidade da luz (luciferina)
+func (g *Glowworm) UpdateLuciferin(function func(float64) float64, decay, enhancement float64) {
+	g.luciferin = (1 - decay)*g.luciferin + enhancement*function(g.position)
+}
+
+// MoveTowards movimenta o vaga-lume em direção a outro mais brilhante
+func (g *Glowworm) MoveTowards(other *Glowworm, stepSize float64) {
+	if g.luciferin < other.luciferin {
+		direction := math.Copysign(1, other.position-g.position)
+		g.position += direction * stepSize
+	}
+}
+
+// GlowwormSwarmOptimization representa o algoritmo GSO
+type GlowwormSwarmOptimization struct {
+	agents      []*Glowworm
+	searchSpace [2]float64
+	iterations  int
+}
+
+// NewGSO inicializa o GSO
+func NewGSO(numAgents int, searchSpace [2]float64, iterations int) *GlowwormSwarmOptimization {
+	rand.Seed(time.Now().UnixNano())
+	agents := make([]*Glowworm, numAgents)
+	for i := range agents {
+		agents[i] = &Glowworm{
+			position:  searchSpace[0] + rand.Float64()*(searchSpace[1]-searchSpace[0]),
+			luciferin: 0.0,
+		}
+	}
+	return &GlowwormSwarmOptimization{
+		agents:      agents,
+		searchSpace: searchSpace,
+		iterations:  iterations,
+	}
+}
+
+// Optimize executa o GSO
+func (gso *GlowwormSwarmOptimization) Optimize(function func(float64) float64) (float64, float64) {
+	for i := 0; i < gso.iterations; i++ {
+		// Atualizar luciferina
+		for _, agent := range gso.agents {
+			agent.UpdateLuciferin(function, 0.4, 0.6)
+		}
+
+		// Movimento baseado na intensidade da luz
+		for _, agent := range gso.agents {
+			var bestNeighbor *Glowworm
+			for _, other := range gso.agents {
+				if other.luciferin > agent.luciferin {
+					if bestNeighbor == nil || other.luciferin > bestNeighbor.luciferin {
+						bestNeighbor = other
+					}
+				}
+			}
+			if bestNeighbor != nil {
+				agent.MoveTowards(bestNeighbor, 0.1)
+			}
+		}
+	}
+
+	// Encontrar a melhor solução
+	bestAgent := gso.agents[0]
+	for _, agent := range gso.agents {
+		if function(agent.position) > function(bestAgent.position) {
+			bestAgent = agent
+		}
+	}
+	return bestAgent.position, function(bestAgent.position)
+}
+
+// Função objetivo
+func objectiveFunction(x float64) float64 {
+	return math.Sin(x) + math.Cos(2*x)
+}
+
+func main() {
+	gso := NewGSO(20, [2]float64{-10, 10}, 100)
+	bestX, bestValue := gso.Optimize(objectiveFunction)
+	fmt.Printf("Melhor solução encontrada: x = %.4f, f(x) = %.4f\n", bestX, bestValue)
+}
+```
+
 ## Firefly Algorithm (FA)
 
 O que é:
