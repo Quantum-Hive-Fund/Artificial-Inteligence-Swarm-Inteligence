@@ -408,6 +408,258 @@ Engenharia de software (testes e otimização)
 Como funciona:
 Divide a população de abelhas em "operárias", "observadoras" e "batedoras", que exploram e exploram diferentes fontes de solução.
 
+Exemplo em Python:
+
+```pyimport random
+import math
+
+class Bee:
+    def __init__(self, dim, minx, maxx):
+        self.position = [random.uniform(minx, maxx) for _ in range(dim)]
+        self.fitness = float('inf')
+        self.trials = 0
+
+class ABC:
+    def __init__(self, dim, colony_size=20, limit=10, max_iter=100):
+        self.dim = dim
+        self.colony_size = colony_size
+        self.limit = limit
+        self.max_iter = max_iter
+        self.minx, self.maxx = -5, 5
+        self.best_solution = None
+        self.best_fitness = float('inf')
+        self.employed = [Bee(dim, self.minx, self.maxx) for _ in range(colony_size//2)]
+        self.onlookers = [Bee(dim, self.minx, self.maxx) for _ in range(colony_size//2)]
+
+    def calculate_fitness(self, position):
+        return sum(x**2 for x in position)
+
+    def optimize(self):
+        for _ in range(self.max_iter):
+            # Fase das abelhas empregadas
+            for bee in self.employed:
+                new_solution = bee.position.copy()
+                j = random.randint(0, self.dim-1)
+                phi = random.uniform(-1, 1)
+                new_solution[j] += phi * (new_solution[j] - random.choice(self.employed).position[j])
+                new_solution[j] = max(min(new_solution[j], self.maxx), self.minx)
+                
+                new_fitness = self.calculate_fitness(new_solution)
+                if new_fitness < bee.fitness:
+                    bee.position = new_solution
+                    bee.fitness = new_fitness
+                    bee.trials = 0
+                else:
+                    bee.trials += 1
+
+            # Fase das abelhas observadoras
+            total = sum(math.exp(-bee.fitness) for bee in self.employed)
+            for bee in self.onlookers:
+                r = random.uniform(0, total)
+                cumulative = 0.0
+                for emp in self.employed:
+                    cumulative += math.exp(-emp.fitness)
+                    if cumulative >= r:
+                        j = random.randint(0, self.dim-1)
+                        phi = random.uniform(-1, 1)
+                        new_solution = emp.position.copy()
+                        new_solution[j] += phi * (new_solution[j] - random.choice(self.employed).position[j])
+                        new_solution[j] = max(min(new_solution[j], self.maxx), self.minx)
+                        
+                        new_fitness = self.calculate_fitness(new_solution)
+                        if new_fitness < bee.fitness:
+                            bee.position = new_solution
+                            bee.fitness = new_fitness
+                            bee.trials = 0
+                        else:
+                            bee.trials += 1
+                        break
+
+            # Fase de scout
+            all_bees = self.employed + self.onlookers
+            for bee in all_bees:
+                if bee.trials >= self.limit:
+                    bee.position = [random.uniform(self.minx, self.maxx) for _ in range(self.dim)]
+                    bee.fitness = self.calculate_fitness(bee.position)
+                    bee.trials = 0
+
+                if bee.fitness < self.best_fitness:
+                    self.best_fitness = bee.fitness
+                    self.best_solution = bee.position.copy()
+
+        return self.best_solution
+
+# Uso:
+abc = ABC(dim=2, colony_size=20, limit=10, max_iter=100)
+result = abc.optimize()
+print("Melhor solução:", result)
+print("Fitness:", sum(x**2 for x in result))
+
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+type Bee struct {
+	position []float64
+	fitness  float64
+	trials   int
+}
+
+type ABC struct {
+	dim         int
+	colonySize  int
+	limit       int
+	maxIter     int
+	minx, maxx  float64
+	bestSolution []float64
+	bestFitness  float64
+	employed    []Bee
+	onlookers   []Bee
+}
+
+func NewABC(dim, colonySize, limit, maxIter int) *ABC {
+	rand.Seed(time.Now().UnixNano())
+	abc := &ABC{
+		dim:        dim,
+		colonySize: colonySize,
+		limit:      limit,
+		maxIter:    maxIter,
+		minx:       -5,
+		maxx:       5,
+		bestFitness: math.Inf(1),
+	}
+
+	half := colonySize / 2
+	abc.employed = make([]Bee, half)
+	abc.onlookers = make([]Bee, half)
+
+	for i := range abc.employed {
+		abc.employed[i] = newBee(dim, abc.minx, abc.maxx)
+	}
+	for i := range abc.onlookers {
+		abc.onlookers[i] = newBee(dim, abc.minx, abc.maxx)
+	}
+
+	return abc
+}
+
+func newBee(dim int, minx, maxx float64) Bee {
+	position := make([]float64, dim)
+	for i := range position {
+		position[i] = rand.Float64()*(maxx-minx) + minx
+	}
+	return Bee{
+		position: position,
+		fitness:  math.Inf(1),
+	}
+}
+
+func (abc *ABC) calculateFitness(position []float64) float64 {
+	sum := 0.0
+	for _, x := range position {
+		sum += x * x
+	}
+	return sum
+}
+
+func (abc *ABC) Optimize() []float64 {
+	for iter := 0; iter < abc.maxIter; iter++ {
+		// Fase empregada
+		for i := range abc.employed {
+			newPos := make([]float64, abc.dim)
+			copy(newPos, abc.employed[i].position)
+
+			j := rand.Intn(abc.dim)
+			phi := rand.Float64()*2 - 1
+			partner := abc.employed[rand.Intn(len(abc.employed))]
+			newPos[j] += phi * (newPos[j] - partner.position[j])
+			newPos[j] = math.Max(math.Min(newPos[j], abc.maxx), abc.minx)
+
+			newFit := abc.calculateFitness(newPos)
+			if newFit < abc.employed[i].fitness {
+				abc.employed[i].position = newPos
+				abc.employed[i].fitness = newFit
+				abc.employed[i].trials = 0
+			} else {
+				abc.employed[i].trials++
+			}
+		}
+
+		// Fase observadora
+		total := 0.0
+		for _, emp := range abc.employed {
+			total += math.Exp(-emp.fitness)
+		}
+
+		for i := range abc.onlookers {
+			r := rand.Float64() * total
+			cumulative := 0.0
+			var emp Bee
+			for e := range abc.employed {
+				cumulative += math.Exp(-abc.employed[e].fitness)
+				if cumulative >= r {
+					emp = abc.employed[e]
+					break
+				}
+			}
+
+			newPos := make([]float64, abc.dim)
+			copy(newPos, emp.position)
+
+			j := rand.Intn(abc.dim)
+			phi := rand.Float64()*2 - 1
+			partner := abc.employed[rand.Intn(len(abc.employed))]
+			newPos[j] += phi * (newPos[j] - partner.position[j])
+			newPos[j] = math.Max(math.Min(newPos[j], abc.maxx), abc.minx)
+
+			newFit := abc.calculateFitness(newPos)
+			if newFit < abc.onlookers[i].fitness {
+				abc.onlookers[i].position = newPos
+				abc.onlookers[i].fitness = newFit
+				abc.onlookers[i].trials = 0
+			} else {
+				abc.onlookers[i].trials++
+			}
+		}
+
+		// Fase scout
+		allBees := append(abc.employed, abc.onlookers...)
+		for i := range allBees {
+			if allBees[i].trials >= abc.limit {
+				newBee := newBee(abc.dim, abc.minx, abc.maxx)
+				newBee.fitness = abc.calculateFitness(newBee.position)
+				allBees[i] = newBee
+			}
+
+			if allBees[i].fitness < abc.bestFitness {
+				abc.bestFitness = allBees[i].fitness
+				abc.bestSolution = make([]float64, abc.dim)
+				copy(abc.bestSolution, allBees[i].position)
+			}
+		}
+	}
+
+	return abc.bestSolution
+}
+
+func main() {
+	abc := NewABC(2, 20, 10, 100)
+	result := abc.Optimize()
+	fmt.Printf("Melhor solução: %v\n", result)
+	fmt.Printf("Fitness: %f\n", abc.calculateFitness(result))
+}
+```
+
 ## Stochastic Diffusion Search (SDS)
 
 O que é:
