@@ -1023,6 +1023,154 @@ Problemas de otimização de engenharia
 Como funciona:
 Vaga-lumes com soluções melhores brilham mais e atraem outros vaga-lumes para suas soluções.
 
+Exemplo em Python:
+
+```python
+import numpy as np
+
+class Firefly:
+    def __init__(self, dim, minx, maxx):
+        self.position = np.random.uniform(minx, maxx, dim)
+        self.intensity = 0.0
+
+    def update_intensity(self, function):
+        self.intensity = function(self.position)
+
+class FireflyAlgorithm:
+    def __init__(self, function, dim, num_fireflies, max_iter, alpha=0.5, beta=0.2, gamma=1.0):
+        self.function = function
+        self.dim = dim
+        self.num_fireflies = num_fireflies
+        self.max_iter = max_iter
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.minx = -5
+        self.maxx = 5
+        self.fireflies = [Firefly(dim, self.minx, self.maxx) for _ in range(num_fireflies)]
+
+    def optimize(self):
+        for _ in range(self.max_iter):
+            for firefly in self.fireflies:
+                firefly.update_intensity(self.function)
+
+            for i in range(self.num_fireflies):
+                for j in range(self.num_fireflies):
+                    if self.fireflies[i].intensity < self.fireflies[j].intensity:
+                        distance = np.linalg.norm(self.fireflies[i].position - self.fireflies[j].position)
+                        beta = self.beta * np.exp(-self.gamma * distance ** 2)
+                        self.fireflies[i].position += beta * (self.fireflies[j].position - self.fireflies[i].position) + \
+                                                      self.alpha * (np.random.rand(self.dim) - 0.5)
+
+                        self.fireflies[i].position = np.clip(self.fireflies[i].position, self.minx, self.maxx)
+
+        best_firefly = min(self.fireflies, key=lambda f: f.intensity)
+        return best_firefly.position, best_firefly.intensity
+
+def objective_function(x):
+    return np.sum(x ** 2)
+
+fa = FireflyAlgorithm(objective_function, dim=2, num_fireflies=20, max_iter=100)
+best_pos, best_intensity = fa.optimize()
+print(f"Melhor posição: {best_pos}, Melhor intensidade: {best_intensity}")
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+// Firefly representa um agente no Firefly Algorithm
+type Firefly struct {
+	position  float64
+	intensity float64
+}
+
+// UpdateIntensity atualiza a intensidade de brilho do vaga-lume
+func (f *Firefly) UpdateIntensity(function func(float64) float64) {
+	f.intensity = function(f.position)
+}
+
+// MoveTowards move o vaga-lume em direção a outro mais brilhante
+func (f *Firefly) MoveTowards(other *Firefly, beta, alpha float64) {
+	if f.intensity < other.intensity {
+		randFactor := (rand.Float64()*2 - 1) * alpha
+		f.position += beta*(other.position-f.position) + randFactor
+	}
+}
+
+// FireflyAlgorithm representa o algoritmo FA
+type FireflyAlgorithm struct {
+	fireflies   []*Firefly
+	searchSpace [2]float64
+	iterations  int
+}
+
+// NewFA inicializa o Firefly Algorithm
+func NewFA(numFireflies int, searchSpace [2]float64, iterations int) *FireflyAlgorithm {
+	rand.Seed(time.Now().UnixNano())
+	fireflies := make([]*Firefly, numFireflies)
+	for i := range fireflies {
+		fireflies[i] = &Firefly{
+			position:  searchSpace[0] + rand.Float64()*(searchSpace[1]-searchSpace[0]),
+			intensity: 0.0,
+		}
+	}
+	return &FireflyAlgorithm{
+		fireflies:   fireflies,
+		searchSpace: searchSpace,
+		iterations:  iterations,
+	}
+}
+
+// Optimize executa o FA
+func (fa *FireflyAlgorithm) Optimize(function func(float64) float64) (float64, float64) {
+	for i := 0; i < fa.iterations; i++ {
+		// Atualizar a intensidade de cada vaga-lume
+		for _, firefly := range fa.fireflies {
+			firefly.UpdateIntensity(function)
+		}
+
+		// Movimento dos vaga-lumes baseados na intensidade
+		for i := 0; i < len(fa.fireflies); i++ {
+			for j := 0; j < len(fa.fireflies); j++ {
+				if fa.fireflies[i].intensity < fa.fireflies[j].intensity {
+					fa.fireflies[i].MoveTowards(fa.fireflies[j], 1.0, 0.2)
+				}
+			}
+		}
+	}
+
+	// Encontrar a melhor solução
+	bestFirefly := fa.fireflies[0]
+	for _, firefly := range fa.fireflies {
+		if firefly.intensity > bestFirefly.intensity {
+			bestFirefly = firefly
+		}
+	}
+	return bestFirefly.position, bestFirefly.intensity
+}
+
+// Função objetivo
+func objectiveFunction(x float64) float64 {
+	return math.Sin(x) + math.Cos(2*x)
+}
+
+func main() {
+	fa := NewFA(20, [2]float64{-10, 10}, 100)
+	bestX, bestValue := fa.Optimize(objectiveFunction)
+	fmt.Printf("Melhor solução encontrada: x = %.4f, f(x) = %.4f\n", bestX, bestValue)
+}
+```
+
+
 ## Bacterial Foraging Optimization (BFO)
 
 O que é:
@@ -1036,6 +1184,199 @@ Sistemas de energia renovável
 Como funciona:
 Simula processos biológicos de natação, reorientação e eliminação/reprodução para explorar o espaço de soluções.
 
+Exemplo em Python:
+
+```py
+import numpy as np
+import random
+
+class Bacterium:
+    def __init__(self, search_space):
+        self.position = random.uniform(search_space[0], search_space[1])  # Posição inicial
+        self.cost = float('inf')  # Custo inicial da função objetivo
+
+    def evaluate(self, function):
+        """Avalia a função objetivo na posição da bactéria"""
+        self.cost = function(self.position)
+
+    def tumble(self, step_size=0.1):
+        """Movimento aleatório da bactéria"""
+        self.position += random.uniform(-1, 1) * step_size
+
+    def swim(self, best_neighbor, step_size=0.1):
+        """Movimento em direção à melhor solução"""
+        if self.cost > best_neighbor.cost:
+            self.position += np.sign(best_neighbor.position - self.position) * step_size
+
+class BFO:
+    def __init__(self, function, search_space, num_bacteria=20, iterations=100):
+        self.function = function
+        self.search_space = search_space
+        self.bacteria = [Bacterium(search_space) for _ in range(num_bacteria)]
+        self.iterations = iterations
+
+    def optimize(self):
+        """Executa o algoritmo BFO"""
+        for _ in range(self.iterations):
+            # Quimiotaxia: Avaliação e movimento aleatório
+            for bacterium in self.bacteria:
+                bacterium.evaluate(self.function)
+                bacterium.tumble()
+
+            # Movimentação em direção às melhores soluções
+            best_bacteria = sorted(self.bacteria, key=lambda b: b.cost, reverse=True)
+            for bacterium in self.bacteria:
+                bacterium.swim(best_bacteria[0])
+
+            # Reprodução: As melhores bactérias se dividem
+            self.bacteria.sort(key=lambda b: b.cost, reverse=True)
+            self.bacteria = self.bacteria[:len(self.bacteria) // 2] * 2
+
+            # Eliminação e Dispersão: Algumas bactérias são eliminadas e redistribuídas
+            for i in range(len(self.bacteria)):
+                if random.random() < 0.1:  # Probabilidade de dispersão
+                    self.bacteria[i] = Bacterium(self.search_space)
+
+        # Melhor solução encontrada
+        best_bacterium = min(self.bacteria, key=lambda b: b.cost)
+        return best_bacterium.position, best_bacterium.cost
+
+# Definição da função objetivo
+def objective_function(x):
+    return np.sin(x) + np.cos(2*x)
+
+# Execução do BFO
+bfo = BFO(objective_function, search_space=(-10, 10))
+best_x, best_value = bfo.optimize()
+print(f"Melhor solução encontrada: x = {best_x:.4f}, f(x) = {best_value:.4f}")
+
+```
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+// Bacterium representa uma bactéria no BFO
+type Bacterium struct {
+	position float64
+	cost     float64
+}
+
+// Evaluate avalia a função objetivo na posição da bactéria
+func (b *Bacterium) Evaluate(function func(float64) float64) {
+	b.cost = function(b.position)
+}
+
+// Tumble realiza um movimento aleatório da bactéria
+func (b *Bacterium) Tumble(stepSize float64) {
+	b.position += (rand.Float64()*2 - 1) * stepSize
+}
+
+// Swim move a bactéria em direção à melhor solução
+func (b *Bacterium) Swim(bestNeighbor *Bacterium, stepSize float64) {
+	if b.cost > bestNeighbor.cost {
+		direction := math.Copysign(1, bestNeighbor.position-b.position)
+		b.position += direction * stepSize
+	}
+}
+
+// BFO representa o algoritmo Bacterial Foraging Optimization
+type BFO struct {
+	bacteria    []*Bacterium
+	searchSpace [2]float64
+	iterations  int
+}
+
+// NewBFO inicializa o BFO
+func NewBFO(numBacteria int, searchSpace [2]float64, iterations int) *BFO {
+	rand.Seed(time.Now().UnixNano())
+	bacteria := make([]*Bacterium, numBacteria)
+	for i := range bacteria {
+		bacteria[i] = &Bacterium{
+			position: searchSpace[0] + rand.Float64()*(searchSpace[1]-searchSpace[0]),
+			cost:     math.Inf(1),
+		}
+	}
+	return &BFO{
+		bacteria:    bacteria,
+		searchSpace: searchSpace,
+		iterations:  iterations,
+	}
+}
+
+// Optimize executa o BFO
+func (bfo *BFO) Optimize(function func(float64) float64) (float64, float64) {
+	for i := 0; i < bfo.iterations; i++ {
+		// Quimiotaxia: avaliação e movimento aleatório
+		for _, bacterium := range bfo.bacteria {
+			bacterium.Evaluate(function)
+			bacterium.Tumble(0.1)
+		}
+
+		// Movimentação em direção às melhores soluções
+		bestBacteria := make([]*Bacterium, len(bfo.bacteria))
+		copy(bestBacteria, bfo.bacteria)
+		// Ordena as bactérias pelo custo (maior valor primeiro)
+		for i := 1; i < len(bestBacteria); i++ {
+			for j := i; j > 0 && bestBacteria[j].cost > bestBacteria[j-1].cost; j-- {
+				bestBacteria[j], bestBacteria[j-1] = bestBacteria[j-1], bestBacteria[j]
+			}
+		}
+
+		for _, bacterium := range bfo.bacteria {
+			bacterium.Swim(bestBacteria[0], 0.1)
+		}
+
+		// Reprodução: As melhores bactérias se duplicam
+		mid := len(bfo.bacteria) / 2
+		bfo.bacteria = append(bfo.bacteria[:mid], bfo.bacteria[:mid]...)
+
+		// Eliminação e dispersão: algumas bactérias são redistribuídas
+		for i := range bfo.bacteria {
+			if rand.Float64() < 0.1 { // Probabilidade de dispersão
+				bfo.bacteria[i] = &Bacterium{
+					position: bfo.searchSpace[0] + rand.Float64()*(bfo.searchSpace[1]-bfo.searchSpace[0]),
+					cost:     math.Inf(1),
+				}
+			}
+		}
+	}
+
+	// Encontrar a melhor solução
+	bestBacterium := bfo.bacteria[0]
+	for _, bacterium := range bfo.bacteria {
+		if bacterium.cost < bestBacterium.cost {
+			bestBacterium = bacterium
+		}
+	}
+	return bestBacterium.position, bestBacterium.cost
+}
+
+// Função objetivo
+func objectiveFunction(x float64) float64 {
+	return math.Sin(x) + math.Cos(2*x)
+}
+
+func main() {
+	bfo := NewBFO(20, [2]float64{-10, 10}, 100)
+	bestX, bestValue := bfo.Optimize(objectiveFunction)
+	fmt.Printf("Melhor solução encontrada: x = %.4f, f(x) = %.4f\n", bestX, bestValue)
+}
+```
+ 
+
+
+
+
+
+
 ## Cuckoo Search (CS)
 
 O que é: Baseado no comportamento de certas espécies de cucos que colocam seus ovos nos ninhos de outras aves.
@@ -1047,6 +1388,194 @@ Problemas financeiros e econômicos
 
 Como funciona:
 Gera novas soluções inspiradas no mecanismo de busca de ninhos ideais e elimina soluções ruins.
+
+Exemplo em Python:
+
+```py
+import numpy as np
+import random
+
+def levy_flight(beta=1.5):
+    """Gera um passo de voo de Lévy"""
+    sigma = (np.math.gamma(1 + beta) * np.sin(np.pi * beta / 2) /
+             (np.math.gamma((1 + beta) / 2) * beta * 2 ** ((beta - 1) / 2))) ** (1 / beta)
+    u = np.random.normal(0, sigma)
+    v = np.random.normal(0, 1)
+    step = u / abs(v) ** (1 / beta)
+    return step
+
+class Cuckoo:
+    def __init__(self, search_space):
+        self.position = random.uniform(search_space[0], search_space[1])  # Posição inicial
+        self.fitness = float('-inf')  # Inicialmente ruim
+
+    def evaluate(self, function):
+        """Avalia a função objetivo"""
+        self.fitness = function(self.position)
+
+    def perform_levy_flight(self, best_nest, alpha=0.01):
+        """Executa um voo de Lévy em direção ao melhor ninho"""
+        step = levy_flight() * alpha
+        self.position += step * (self.position - best_nest.position)
+
+class CuckooSearch:
+    def __init__(self, function, search_space, num_nests=20, iterations=100, pa=0.25):
+        self.function = function
+        self.search_space = search_space
+        self.nests = [Cuckoo(search_space) for _ in range(num_nests)]
+        self.iterations = iterations
+        self.pa = pa  # Taxa de abandono de ninhos
+
+    def optimize(self):
+        """Executa o algoritmo Cuckoo Search"""
+        for _ in range(self.iterations):
+            # Avaliação das soluções
+            for nest in self.nests:
+                nest.evaluate(self.function)
+
+            # Encontrar o melhor ninho
+            best_nest = max(self.nests, key=lambda n: n.fitness)
+
+            # Voos de Lévy para explorar novas soluções
+            for nest in self.nests:
+                if random.random() > self.pa:
+                    nest.perform_levy_flight(best_nest)
+
+            # Substituição de soluções ruins
+            for nest in self.nests:
+                if random.random() < self.pa:
+                    nest.position = random.uniform(self.search_space[0], self.search_space[1])
+
+        # Melhor solução encontrada
+        best_nest = max(self.nests, key=lambda n: n.fitness)
+        return best_nest.position, best_nest.fitness
+
+# Definição da função objetivo
+def objective_function(x):
+    return np.sin(x) + np.cos(2*x)
+
+# Execução do CS
+cs = CuckooSearch(objective_function, search_space=(-10, 10))
+best_x, best_value = cs.optimize()
+print(f"Melhor solução encontrada: x = {best_x:.4f}, f(x) = {best_value:.4f}")
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+// Cuckoo representa um ninho no Cuckoo Search
+type Cuckoo struct {
+	position float64
+	fitness  float64
+}
+
+// Evaluate avalia a função objetivo na posição do ninho
+func (c *Cuckoo) Evaluate(function func(float64) float64) {
+	c.fitness = function(c.position)
+}
+
+// LevyFlight gera um passo de voo de Lévy
+func LevyFlight(beta float64) float64 {
+	sigma := math.Pow((math.Gamma(1+beta) * math.Sin(math.Pi*beta/2)) /
+		(math.Gamma((1+beta)/2) * beta * math.Pow(2, (beta-1)/2)), 1/beta)
+	u := rand.NormFloat64() * sigma
+	v := rand.NormFloat64()
+	return u / math.Pow(math.Abs(v), 1/beta)
+}
+
+// PerformLevyFlight executa um voo de Lévy em direção ao melhor ninho
+func (c *Cuckoo) PerformLevyFlight(bestNest *Cuckoo, alpha float64) {
+	step := LevyFlight(1.5) * alpha
+	c.position += step * (c.position - bestNest.position)
+}
+
+// CuckooSearch representa o algoritmo CS
+type CuckooSearch struct {
+	nests      []*Cuckoo
+	searchSpace [2]float64
+	iterations int
+	pa         float64 // Taxa de abandono de ninhos
+}
+
+// NewCS inicializa o Cuckoo Search
+func NewCS(numNests int, searchSpace [2]float64, iterations int, pa float64) *CuckooSearch {
+	rand.Seed(time.Now().UnixNano())
+	nests := make([]*Cuckoo, numNests)
+	for i := range nests {
+		nests[i] = &Cuckoo{
+			position: searchSpace[0] + rand.Float64()*(searchSpace[1]-searchSpace[0]),
+			fitness:  math.Inf(-1),
+		}
+	}
+	return &CuckooSearch{
+		nests:      nests,
+		searchSpace: searchSpace,
+		iterations: iterations,
+		pa:         pa,
+	}
+}
+
+// Optimize executa o Cuckoo Search
+func (cs *CuckooSearch) Optimize(function func(float64) float64) (float64, float64) {
+	for i := 0; i < cs.iterations; i++ {
+		// Avaliação das soluções
+		for _, nest := range cs.nests {
+			nest.Evaluate(function)
+		}
+
+		// Encontrar o melhor ninho
+		bestNest := cs.nests[0]
+		for _, nest := range cs.nests {
+			if nest.fitness > bestNest.fitness {
+				bestNest = nest
+			}
+		}
+
+		// Voos de Lévy para explorar novas soluções
+		for _, nest := range cs.nests {
+			if rand.Float64() > cs.pa {
+				nest.PerformLevyFlight(bestNest, 0.01)
+			}
+		}
+
+		// Substituição de ninhos ruins
+		for _, nest := range cs.nests {
+			if rand.Float64() < cs.pa {
+				nest.position = cs.searchSpace[0] + rand.Float64()*(cs.searchSpace[1]-cs.searchSpace[0])
+			}
+		}
+	}
+
+	// Encontrar a melhor solução
+	bestNest := cs.nests[0]
+	for _, nest := range cs.nests {
+		if nest.fitness > bestNest.fitness {
+			bestNest = nest
+		}
+	}
+	return bestNest.position, bestNest.fitness
+}
+
+// Função objetivo
+func objectiveFunction(x float64) float64 {
+	return math.Sin(x) + math.Cos(2*x)
+}
+
+func main() {
+	cs := NewCS(20, [2]float64{-10, 10}, 100, 0.25)
+	bestX, bestValue := cs.Optimize(objectiveFunction)
+	fmt.Printf("Melhor solução encontrada: x = %.4f, f(x) = %.4f\n", bestX, bestValue)
+}
+```
 
 ## Grey Wolf Optimizer (GWO)
 
@@ -1061,8 +1590,186 @@ Ajuste de parâmetros de redes neurais
 Como funciona:
 Os lobos são divididos em líderes (alfa, beta, delta) e seguidores (ômega), e juntos convergem para soluções ótimas.
 
+Exemplo em Python:
+
+```py
+import numpy as np
+import random
+
+class GreyWolf:
+    def __init__(self, search_space):
+        self.position = random.uniform(search_space[0], search_space[1])  # Posição inicial
+        self.fitness = float('-inf')  # Avaliação inicial da função objetivo
+
+    def evaluate(self, function):
+        """Avalia a função objetivo"""
+        self.fitness = function(self.position)
+
+class GreyWolfOptimizer:
+    def __init__(self, function, search_space, num_wolves=20, iterations=100):
+        self.function = function
+        self.search_space = search_space
+        self.wolves = [GreyWolf(search_space) for _ in range(num_wolves)]
+        self.iterations = iterations
+
+    def optimize(self):
+        """Executa o Grey Wolf Optimizer"""
+        alpha, beta, delta = None, None, None
+
+        for _ in range(self.iterations):
+            # Avaliar os lobos
+            for wolf in self.wolves:
+                wolf.evaluate(self.function)
+
+            # Atualizar α (melhor), β (segundo melhor) e δ (terceiro melhor)
+            sorted_wolves = sorted(self.wolves, key=lambda w: w.fitness, reverse=True)
+            alpha, beta, delta = sorted_wolves[:3]
+
+            # Atualizar as posições dos lobos
+            a = 2 - 2 * (_ / self.iterations)  # Componente de exploração/exploração
+
+            for wolf in self.wolves:
+                if wolf not in [alpha, beta, delta]:
+                    A1, A2, A3 = (2 * a * random.random() - a for _ in range(3))
+                    C1, C2, C3 = (2 * random.random() for _ in range(3))
+
+                    X1 = alpha.position - A1 * abs(C1 * alpha.position - wolf.position)
+                    X2 = beta.position - A2 * abs(C2 * beta.position - wolf.position)
+                    X3 = delta.position - A3 * abs(C3 * delta.position - wolf.position)
+
+                    wolf.position = (X1 + X2 + X3) / 3  # Atualização da posição
+
+        # Melhor solução encontrada
+        best_wolf = max(self.wolves, key=lambda w: w.fitness)
+        return best_wolf.position, best_wolf.fitness
+
+# Definição da função objetivo
+def objective_function(x):
+    return np.sin(x) + np.cos(2*x)
+
+# Execução do GWO
+gwo = GreyWolfOptimizer(objective_function, search_space=(-10, 10))
+best_x, best_value = gwo.optimize()
+print(f"Melhor solução encontrada: x = {best_x:.4f}, f(x) = {best_value:.4f}")
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+// GreyWolf representa um lobo na otimização
+type GreyWolf struct {
+	position float64
+	fitness  float64
+}
+
+// Evaluate avalia a função objetivo
+func (w *GreyWolf) Evaluate(function func(float64) float64) {
+	w.fitness = function(w.position)
+}
+
+// GreyWolfOptimizer representa o GWO
+type GreyWolfOptimizer struct {
+	wolves      []*GreyWolf
+	searchSpace [2]float64
+	iterations  int
+}
+
+// NewGWO inicializa o GWO
+func NewGWO(numWolves int, searchSpace [2]float64, iterations int) *GreyWolfOptimizer {
+	rand.Seed(time.Now().UnixNano())
+	wolves := make([]*GreyWolf, numWolves)
+	for i := range wolves {
+		wolves[i] = &GreyWolf{
+			position: searchSpace[0] + rand.Float64()*(searchSpace[1]-searchSpace[0]),
+			fitness:  math.Inf(-1),
+		}
+	}
+	return &GreyWolfOptimizer{
+		wolves:      wolves,
+		searchSpace: searchSpace,
+		iterations:  iterations,
+	}
+}
+
+// Optimize executa o Grey Wolf Optimizer
+func (gwo *GreyWolfOptimizer) Optimize(function func(float64) float64) (float64, float64) {
+	var alpha, beta, delta *GreyWolf
+
+	for iter := 0; iter < gwo.iterations; iter++ {
+		// Avaliar os lobos
+		for _, wolf := range gwo.wolves {
+			wolf.Evaluate(function)
+		}
+
+		// Encontrar os três melhores lobos (α, β, δ)
+		alpha, beta, delta = gwo.selectBestWolves()
+
+		// Atualizar as posições dos lobos
+		a := 2 - 2*float64(iter)/float64(gwo.iterations) // Fator de exploração
+
+		for _, wolf := range gwo.wolves {
+			if wolf != alpha && wolf != beta && wolf != delta {
+				A1, A2, A3 := 2*a*rand.Float64()-a, 2*a*rand.Float64()-a, 2*a*rand.Float64()-a
+				C1, C2, C3 := 2*rand.Float64(), 2*rand.Float64(), 2*rand.Float64()
+
+				X1 := alpha.position - A1*math.Abs(C1*alpha.position-wolf.position)
+				X2 := beta.position - A2*math.Abs(C2*beta.position-wolf.position)
+				X3 := delta.position - A3*math.Abs(C3*delta.position-wolf.position)
+
+				wolf.position = (X1 + X2 + X3) / 3
+			}
+		}
+	}
+
+	// Melhor solução encontrada
+	bestWolf := alpha
+	return bestWolf.position, bestWolf.fitness
+}
+
+// selectBestWolves encontra os três melhores lobos
+func (gwo *GreyWolfOptimizer) selectBestWolves() (*GreyWolf, *GreyWolf, *GreyWolf) {
+	wolves := gwo.wolves
+	alpha, beta, delta := wolves[0], wolves[1], wolves[2]
+
+	for _, wolf := range wolves {
+		if wolf.fitness > alpha.fitness {
+			delta = beta
+			beta = alpha
+			alpha = wolf
+		} else if wolf.fitness > beta.fitness {
+			delta = beta
+			beta = wolf
+		} else if wolf.fitness > delta.fitness {
+			delta = wolf
+		}
+	}
+	return alpha, beta, delta
+}
+
+// Função objetivo
+func objectiveFunction(x float64) float64 {
+	return math.Sin(x) + math.Cos(2*x)
+}
+
+func main() {
+	gwo := NewGWO(20, [2]float64{-10, 10}, 100)
+	bestX, bestValue := gwo.Optimize(objectiveFunction)
+	fmt.Printf("Melhor solução encontrada: x = %.4f, f(x) = %.4f\n", bestX, bestValue)
+}
+```
+
 Cada um desses algoritmos de Swarm Intelligence tem aplicações específicas, mas todos compartilham a característica de descentralização e auto-organização. Dependendo do seu problema (por exemplo, otimização de portfólio, trading algorítmico, ajuste de hiperparâmetros), um desses métodos pode ser mais adequado.
 
+## Utilização pelo Quantum Hive Fund
 Por hora estou utilizando o PSO e o GWO para otimização de parâmetros de estratégias de trading, com ótimos resultados, muito superior aos Algoritmos Genéticos. Bem na verdade eu uso um fluxo iniciando com os Algoritmos Genéticos, depois uso o melhor resultado no PSO e por final uso o QAOA (Quantum Approximate Optimization Algorithm) para garantir a máxima otimização.
 
 #ficadica
