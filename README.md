@@ -1252,11 +1252,13 @@ Step 1: Data Preprocessing
 
 Load historical crypto price data and compute moving averages.
 
+```py
 import pandas as pd
 import numpy as np
 import random
 import ccxt  # To fetch market data (requires installation: pip install ccxt)
-from ta.trend import SMAIndicator  # Requires: pip install ta
+from ta.trend import SMAIndicator
+# Requires: pip install ta
 
 # Fetch historical data using Binance API
 def get_crypto_data(symbol="BTC/USDT", timeframe="1h", limit=500):
@@ -1275,7 +1277,7 @@ def trading_strategy(df, ma_short, ma_long):
     df['returns'] = df['close'].pct_change() * df['signal'].shift(1)
     
     return df['returns'].sum()  # Total profit
-
+```
 
 ---
 
@@ -1283,6 +1285,7 @@ Step 2: PSO - Initial Optimization of Moving Averages
 
 PSO finds a good initial set of moving averages.
 
+```py
 class Particle:
     def __init__(self, df):
         self.df = df
@@ -1327,7 +1330,7 @@ df = get_crypto_data()
 pso = PSO(df)
 best_pso_ma = pso.optimize()
 print(f"PSO Optimized MAs: Short = {best_pso_ma[0]}, Long = {best_pso_ma[1]}")
-
+```
 
 ---
 
@@ -1335,6 +1338,7 @@ Step 3: GWO - Fine-Tuning Moving Averages
 
 GWO refines the best parameters found by PSO.
 
+```py
 class GreyWolf:
     def __init__(self, df):
         self.df = df
@@ -1369,7 +1373,7 @@ class GWO:
 gwo = GWO(df)
 best_gwo_ma = gwo.optimize()
 print(f"GWO Final Optimized MAs: Short = {best_gwo_ma[0]}, Long = {best_gwo_ma[1]}")
-
+```
 
 ---
 
@@ -1377,6 +1381,7 @@ Step 4: Quantum Optimization with QAOA
 
 We now apply Quantum Approximate Optimization Algorithm (QAOA) to further refine the solution.
 
+```py
 from scipy.optimize import minimize
 
 # Quantum-inspired cost function to optimize the strategy
@@ -1389,7 +1394,7 @@ qaoa_result = minimize(qaoa_cost_function, best_gwo_ma, method='Powell')
 best_qaoa_ma = qaoa_result.x
 
 print(f"Final QAOA Optimized MAs: Short = {best_qaoa_ma[0]:.2f}, Long = {best_qaoa_ma[1]:.2f}")
-
+```
 
 ---
 
