@@ -1,6 +1,6 @@
 # Inteligência Artificial - Swarm Intelligence
 
-Uma das áreas que eu acho super interessante da Inteligência Artificial é o Swarm Inteligence, conheça seus algoritmos:
+Uma das áreas que eu acho super interessante da Inteligência Artificial é o Swarm Inteligence. 
 
 Swarm Intelligence (Inteligência de Enxame) é um campo da inteligência artificial baseado no comportamento coletivo de sistemas descentralizados e auto-organizados. Existem diferentes tipos de Swarm Intelligence, cada um com aplicações específicas. Aqui estão os principais:
 
@@ -1770,6 +1770,12 @@ func main() {
 Cada um desses algoritmos de Swarm Intelligence tem aplicações específicas, mas todos compartilham a característica de descentralização e auto-organização. Dependendo do seu problema (por exemplo, otimização de portfólio, trading algorítmico, ajuste de hiperparâmetros), um desses métodos pode ser mais adequado.
 
 ## Utilização pelo Quantum Hive Fund
+
 Por hora estou utilizando o PSO e o GWO para otimização de parâmetros de estratégias de trading, com ótimos resultados, muito superior aos Algoritmos Genéticos. Bem na verdade eu uso um fluxo iniciando com os Algoritmos Genéticos, depois uso o melhor resultado no PSO e por final uso o QAOA (Quantum Approximate Optimization Algorithm) para garantir a máxima otimização.
 
 #ficadica
+
+
+![Quantum Hive Fund](https://i.imgur.com/oTW3BMs.pngg)
+
+[Quantum Hive Fund site](https://quantumhivefund.com) 
