@@ -673,6 +673,173 @@ Otimização robusta em ambientes ruidosos
 Como funciona:
 Os agentes realizam buscas individuais e compartilham informações sobre boas soluções, aumentando a eficiência da busca coletiva.
 
+Exemplo em Python:
+
+```py
+import numpy as np
+import random
+
+class SDSAgent:
+    def __init__(self, search_space):
+        self.position = random.uniform(search_space[0], search_space[1])  # Posição inicial do agente
+        self.active = False  # Estado ativo/inativo do agente
+
+    def evaluate(self, function):
+        """Avalia a função objetivo na posição do agente"""
+        return function(self.position)
+
+    def test_hypothesis(self, function, threshold=0.1):
+        """Teste probabilístico para manter um agente ativo"""
+        self.active = np.random.rand() < threshold
+
+    def communicate(self, other_agent):
+        """Se estiver inativo, copia a posição de outro agente ativo"""
+        if not self.active:
+            self.position = other_agent.position
+
+class StochasticDiffusionSearch:
+    def __init__(self, function, search_space, num_agents=20, iterations=100):
+        self.function = function
+        self.search_space = search_space
+        self.agents = [SDSAgent(search_space) for _ in range(num_agents)]
+        self.iterations = iterations
+
+    def optimize(self):
+        """Executa a busca estocástica"""
+        for _ in range(self.iterations):
+            # Teste da hipótese
+            for agent in self.agents:
+                agent.test_hypothesis(self.function)
+            
+            # Difusão da informação
+            for agent in self.agents:
+                if not agent.active:
+                    other = random.choice(self.agents)
+                    if other.active:
+                        agent.communicate(other)
+            
+            # Atualização das posições aleatoriamente para exploração
+            for agent in self.agents:
+                if random.random() < 0.2:  # Pequena chance de explorar
+                    agent.position = random.uniform(self.search_space[0], self.search_space[1])
+        
+        # Melhor solução encontrada
+        best_agent = max(self.agents, key=lambda a: a.evaluate(self.function))
+        return best_agent.position, self.function(best_agent.position)
+
+# Definição da função objetivo
+def objective_function(x):
+    return np.sin(x) + np.cos(2*x)
+
+# Execução do SDS
+sds = StochasticDiffusionSearch(objective_function, search_space=(-10, 10))
+best_x, best_value = sds.optimize()
+print(f"Melhor solução encontrada: x = {best_x:.4f}, f(x) = {best_value:.4f}")
+```
+
+Exemplo em Go:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+)
+
+// SDSAgent representa um agente no algoritmo Stochastic Diffusion Search
+type SDSAgent struct {
+	position float64
+	active   bool
+}
+
+// Evaluate avalia a função objetivo na posição do agente
+func (a *SDSAgent) Evaluate() float64 {
+	return math.Sin(a.position) + math.Cos(2*a.position)
+}
+
+// TestHypothesis define um teste probabilístico para manter um agente ativo
+func (a *SDSAgent) TestHypothesis(threshold float64) {
+	a.active = rand.Float64() < threshold
+}
+
+// Communicate permite que um agente inativo copie a posição de outro ativo
+func (a *SDSAgent) Communicate(other *SDSAgent) {
+	if !a.active {
+		a.position = other.position
+	}
+}
+
+// StochasticDiffusionSearch representa o algoritmo SDS
+type StochasticDiffusionSearch struct {
+	agents      []*SDSAgent
+	searchSpace [2]float64
+	iterations  int
+}
+
+// NewSDS inicializa o SDS
+func NewSDS(numAgents int, searchSpace [2]float64, iterations int) *StochasticDiffusionSearch {
+	rand.Seed(time.Now().UnixNano())
+	agents := make([]*SDSAgent, numAgents)
+	for i := range agents {
+		agents[i] = &SDSAgent{
+			position: searchSpace[0] + rand.Float64()*(searchSpace[1]-searchSpace[0]),
+			active:   false,
+		}
+	}
+	return &StochasticDiffusionSearch{
+		agents:      agents,
+		searchSpace: searchSpace,
+		iterations:  iterations,
+	}
+}
+
+// Optimize executa o SDS para otimização da função objetivo
+func (sds *StochasticDiffusionSearch) Optimize() (float64, float64) {
+	for i := 0; i < sds.iterations; i++ {
+		// Teste da hipótese
+		for _, agent := range sds.agents {
+			agent.TestHypothesis(0.1)
+		}
+
+		// Difusão da informação
+		for _, agent := range sds.agents {
+			if !agent.active {
+				other := sds.agents[rand.Intn(len(sds.agents))]
+				if other.active {
+					agent.Communicate(other)
+				}
+			}
+		}
+
+		// Atualização aleatória para exploração
+		for _, agent := range sds.agents {
+			if rand.Float64() < 0.2 { // Exploração ocasional
+				agent.position = sds.searchSpace[0] + rand.Float64()*(sds.searchSpace[1]-sds.searchSpace[0])
+			}
+		}
+	}
+
+	// Encontrar a melhor solução
+	bestAgent := sds.agents[0]
+	for _, agent := range sds.agents {
+		if agent.Evaluate() > bestAgent.Evaluate() {
+			bestAgent = agent
+		}
+	}
+	return bestAgent.position, bestAgent.Evaluate()
+}
+
+func main() {
+	sds := NewSDS(20, [2]float64{-10, 10}, 100)
+	bestX, bestValue := sds.Optimize()
+	fmt.Printf("Melhor solução encontrada: x = %.4f, f(x) = %.4f\n", bestX, bestValue)
+}
+```
+
+
 ## Glowworm Swarm Optimization (GSO)
 
 O que é:
