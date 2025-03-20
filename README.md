@@ -1,3 +1,6 @@
+![1000167694](https://github.com/user-attachments/assets/735f87c5-30a6-4790-ba08-1bbcbde22f47)
+
+
 Artificial Intelligence - Swarm Intelligence
 
 One of the areas I find extremely interesting in Artificial Intelligence is Swarm Intelligence.
